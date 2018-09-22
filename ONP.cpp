@@ -7,7 +7,26 @@ typedef std::shared_ptr<Expression> pExp;
 struct Expression {
   
   virtual ~Expression() = default;
+  
+  friend std::ostream& operator<<(std::ostream& os, Expression& exp) {
+    exp.print(os, 0);
+    return os;
+  }
 
+  virtual void print(std::ostream& os, std::size_t lv) = 0;
+
+  virtual void printRPN(std::ostream& os) = 0;
+};
+
+struct BracetExpression : public Expression {
+  pExp child;
+  BracetExpression(pExp _child) : 
+    child(_child) 
+    { }
+  virtual void print(std::ostream& os, std::size_t lv) {
+    child->print(os, lv);
+  }
+  virtual void printRPN(std::ostream& os) { child->printRPN(os); }
 };
 
 struct ValueExpression : public Expression {
@@ -15,6 +34,13 @@ struct ValueExpression : public Expression {
   ValueExpression(const char c) : 
     sym(c)
     { }
+  virtual void print(std::ostream& os, std::size_t lv) {
+    for(std::size_t i = 0;i < lv;i++) {
+      os << "  " ;
+    }
+    os << sym << "\n";
+  }
+  virtual void printRPN(std::ostream& os) { os << sym; }
 };
 
 struct BinaryExpression : public Expression {
@@ -26,6 +52,19 @@ struct BinaryExpression : public Expression {
     {
       if (op != '+' & op != '-' & op != '*' & op != '/' & op != '^') throw std::invalid_argument("invalid operator");
     }
+  virtual void print(std::ostream& os, std::size_t lv) {
+    left->print(os, lv + 1);
+    for(std::size_t i = 0;i < lv;i++) {
+      os << "  ";
+    }
+    os << op << "\n";
+    right->print(os, lv + 1); 
+  }
+  virtual void printRPN(std::ostream& os) {
+    left->printRPN(os);
+    right->printRPN(os);
+    os << op;
+  }
 };
 
 std::size_t getSize(const char* start, std::size_t size) {
@@ -36,11 +75,12 @@ std::size_t getSize(const char* start, std::size_t size) {
     if (*p == '(') depth++;
     else if (*p == ')') {
       if (depth == 1) break;
-      depth--
+      depth--;
     }
     p++;
   }
   std::size_t retval = p - start + 1;
+  return retval;
 }
 
 pExp parse(const char* start, const std::size_t size) {
@@ -55,6 +95,9 @@ pExp parse(const char* start, const std::size_t size) {
     lsize = getSize(start, size);
     L = parse(start + 1, lsize - 2);
   } else throw std::runtime_error("failed to parse left");
+  if (lsize == size) {
+    return pExp(new BracetExpression(L));
+  }
   const char op = start[lsize];
   const char r = start[lsize + 1];
   size_t rsize;
@@ -79,7 +122,10 @@ int main() {
   if (!(std::cin >> t)) return 1;
   for(t;t > 0;t--) {
     std::string exp;
-    std::cin >> exp;
+    if (!(std::cin >> exp)) return 1;
+    pExp pexp(parse(exp));
+    pexp->printRPN(std::cout);
+    std::cout << std::endl;
   }
   return 0;
 }
