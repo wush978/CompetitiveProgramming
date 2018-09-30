@@ -5,4 +5,4 @@ all : $(TARGET)
 	echo $(TARGET)
 
 % : %.cpp
-	g++ -std=c++14 $< -o $@
+	g++ -g -std=c++14 $< -o $@
