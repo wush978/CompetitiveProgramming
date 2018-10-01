@@ -125,3 +125,4 @@ std::vector<std::size_t> getLCP(const std::string& input, const std::vector<std:
   }
   return result;
 }
+
