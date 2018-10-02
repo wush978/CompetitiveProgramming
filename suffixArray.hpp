@@ -36,7 +36,7 @@ std::vector<std::size_t> sortCyclicShifts(const V& input, std::size_t (*key)(con
   }
 
   // recursion
-  std::size_t step = 1, stepBound = std::ceil(std::log(n));
+  std::size_t step = 1, stepBound = std::ceil(std::log2(n));
   std::size_t shift = 1;
   while(step <= stepBound) {
     // counting sort i - 2^k
