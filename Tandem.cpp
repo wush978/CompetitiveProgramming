@@ -216,13 +216,12 @@ int main() {
         auto rtmp(findSubstring(str, sa, tmp));
         if (rtmp.size() > 0) {
           for(std::size_t j = 0;j < rtmp.size();j++) {
-//            std::cout << rtmp[j] << "\t" << tmp << std::endl;
-	    std::size_t target = rtmp[j] + tmp.size() + 1;
-	    if (target == str.size()) interesting += 1;
-	    else {
-	      if (str[target] == str[0]) boring += 1;
-	      else interesting += 1;
-	    }
+      	    std::size_t target = rtmp[j] + tmp.size();
+      	    if (target == str.size()) interesting += 1;
+      	    else {
+      	      if (str[target] == str[0]) boring += 1;
+      	      else interesting += 1;
+      	    }
           }
         }
         history.insert(candidate);
