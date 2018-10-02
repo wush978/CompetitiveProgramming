@@ -219,7 +219,7 @@ int main() {
       	    std::size_t target = rtmp[j] + tmp.size();
       	    if (target == str.size()) interesting += 1;
       	    else {
-      	      if (str[target] == str[0]) boring += 1;
+      	      if (str[target] == tmp[0]) boring += 1;
       	      else interesting += 1;
       	    }
           }
