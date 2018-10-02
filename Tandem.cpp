@@ -151,22 +151,31 @@ std::vector<std::size_t> findSubstring(const std::string& x, const std::vector<s
 }
 
 #include <string>
+#include <cstring>
 #include <iostream>
 #include <set>
 
 int main() {
   std::string str;
   if (!std::getline(std::cin, str)) return 1;
+  if (str.size() < 3) {
+    std::cout << 0 << "  " << 0 << std::endl;
+    return 0;
+  }
   auto sa(suffixArray(str));
+/*
   for(std::size_t i = 0;i < sa.size();i++) {
     std::cout << (sa[i]) << " ";
   }
   std::cout << std::endl;
+*/
   auto lcp(getLCP(str, sa));
+/*
   for(std::size_t i = 0;i < lcp.size();i++) {
     std::cout << (lcp[i]) << " ";
   }
   std::cout << std::endl;
+*/
 /*
   std::string query;
   if (!(std::cin >> query)) return 2;
@@ -191,14 +200,12 @@ int main() {
   std::set<Substring, decltype(comp)> history(comp);
   std::size_t i = 0;
   std::string tmp;
+  std::size_t interesting = 0, boring = 0;
   while(i + 2 < str.size()) {
-    if (i == 2) {
-      std::cout << " " << std::endl;
-    }
     // the lcp of nearest three leaf node
     std::size_t lcpN = std::min(lcp[i], lcp[i + 1]);
     Substring candidate(str.data() + sa[i], 1);
-    while(candidate.second < lcpN && candidate.second * 3 <= str.size()) {
+    while(candidate.second <= lcpN && candidate.second * 3 <= str.size()) {
       auto hi = history.find(candidate);
       if (hi == history.end()) {
         tmp.resize(candidate.second * 3);
@@ -209,7 +216,13 @@ int main() {
         auto rtmp(findSubstring(str, sa, tmp));
         if (rtmp.size() > 0) {
           for(std::size_t j = 0;j < rtmp.size();j++) {
-            std::cout << rtmp[j] << "\t" << tmp << std::endl;
+//            std::cout << rtmp[j] << "\t" << tmp << std::endl;
+	    std::size_t target = rtmp[j] + tmp.size() + 1;
+	    if (target == str.size()) interesting += 1;
+	    else {
+	      if (str[target] == str[0]) boring += 1;
+	      else interesting += 1;
+	    }
           }
         }
         history.insert(candidate);
@@ -218,5 +231,6 @@ int main() {
     }
     i++;
   }
+  std::cout << interesting << "  " << boring << std::endl;
   return 0;
 }
