@@ -3,44 +3,41 @@
 #include <climits>
 #include <string>
 #include <algorithm>
+#include <iostream>
+
 
 /**
  * @param T The typename of the sorted objects
  * @param k The number of classes of the sorted objects
  * Reference: https://cp-algorithms.com/string/suffix-array.html
  */
-template<typename V, std::size_t K>
-std::vector<std::size_t> sortCyclicShifts(const V& input, std::size_t (*key)(const typename V::value_type&)) {
-  typedef typename V::value_type T;
-  if (input.size() == 0) return std::vector<std::size_t>();
-  const std::size_t n = input.size();
-
-  std::vector<std::size_t> p(n, 0);
-  std::vector<std::size_t> c(n, 0);
-
+std::vector<std::size_t> sortCyclicShifts(const std::string& x) {
+  std::size_t n = x.size();
+  std::vector<std::size_t> p(n, 0), c(n, 0);
+  const std::size_t K = 256;
   // counting sort
   std::vector<std::size_t> count(K, 0);
-  for(auto i = input.begin();i != input.end();i++) {
-    count[key(*i)] += 1;
+  for(std::size_t i = 0;i < x.size();i++) {
+    count[static_cast<unsigned char>(x[i])] += 1;
   }
-  std::size_t csum = 0, tmp;
-  for(auto i = count.begin();i != count.end();i++) {
-    tmp = *i;
-    *i = csum;
-    csum += tmp;
+  for(std::size_t i = 1;i < count.size();i++) {
+    count[i] += count[i - 1];
   }
   for(std::size_t i = 0;i < n;i++) {
-    std::size_t j = key(input[i]);
+    unsigned char j = static_cast<unsigned char>(x[i]);
     p[count[j]] = i;
-    c[i] = j;
-    count[j] += 1;
   }
-
+  std::size_t cValue = 0;
+  c[p[0]] = cValue;
+  for(std::size_t i = 1;i < n;i++) {
+    if (x[p[i]] != x[p[i-1]]) cValue++;
+    c[p[i]] = cValue;
+  }
   // recursion
-  std::size_t step = 1, stepBound = std::ceil(std::log(n));
-  std::size_t shift = 1;
+  std::size_t step = 1, stepBound = std::ceil(std::log2((double) n)), shift = 1;
+  std::vector<std::size_t> ctmp(n, 0), ptmp(n, 0);
   while(step <= stepBound) {
-    // counting sort i - 2^k
+    count.resize(cValue);
     std::fill(count.begin(), count.end(), 0);
     for(std::size_t i = 0;i < shift;i++) {
       count[c[i + (n - shift)]] += 1;
@@ -48,35 +45,17 @@ std::vector<std::size_t> sortCyclicShifts(const V& input, std::size_t (*key)(con
     for(std::size_t i = shift;i < n;i++) {
       count[c[i - shift]] += 1;
     }
-    // reset count / c
-    std::vector<std::size_t> cmap(count.size(), 0);
-    std::size_t cmapSize = 0;
-    std::vector<std::size_t> countTmp;
-    for(std::size_t i = 0;i < count.size();i++) {
-        if (count[i] > 0) {
-            cmap[i] = cmapSize++;
-            countTmp.push_back(count[i]);
-        }
+    for(std::size_t i = 1;i < count.size();i++) {
+      count[i] += count[i-1];
     }
-    std::swap(count, countTmp);
-    std::vector<std::size_t> ctmp(n);
-    csum = 0;
-    for(auto i = count.begin();i != count.end();i++) {
-      tmp = *i;
-      *i = csum;
-      csum += tmp;
-    }
-    std::size_t countSize = count.size();
-    std::vector<std::size_t> ptmp(n);
-    for(auto i = p.begin();i != p.end();i++) {
-      std::size_t shifted = (*i < shift ? *i + n - shift : *i - shift);
-      std::size_t shiftedC = cmap[c[shifted]];
+    std::fill(ptmp.begin(), ptmp.end(), 0);
+    std::fill(ctmp.begin(), ctmp.end(), 0);
+    for(std::size_t& i : p) {
+      std::size_t shifted = (i < shift ? i + n - shift : i - shift);
+      std::size_t shiftedC = c[shifted];
       ptmp[count[shiftedC]] = shifted;
-      ctmp[shifted] = shiftedC * cmapSize + cmap[c[*i]];
-      if (ctmp[shifted] + 1 > countSize) countSize = ctmp[shifted] + 1;
-      count[shiftedC] += 1;
     }
-    count.resize(countSize);
+
     shift = (shift * 2) % n;
     std::swap(c, ctmp);
     std::swap(p, ptmp);
@@ -85,19 +64,9 @@ std::vector<std::size_t> sortCyclicShifts(const V& input, std::size_t (*key)(con
   return p;
 }
 
-template<typename V, std::size_t K>
-std::vector<std::size_t> sortCyclicShifts(const V& input) {
-  typedef typename V::value_type T;
-  typedef std::size_t (*KeyType)(const T&);
-  KeyType key = [](const T& t) {
-    return ((std::size_t) t);
-  };
-  return sortCyclicShifts<V, K>(input, key);
-}
-
 std::vector<std::size_t> suffixArray(std::string& input) {
-  input.push_back('$');
-  auto result(sortCyclicShifts<std::string, 256>(input));
+  input.push_back(0x0);
+  auto result(sortCyclicShifts(input));
   result.erase(result.begin());
   input.pop_back();
   return result;
@@ -129,7 +98,7 @@ std::vector<std::size_t> getLCP(const std::string& input, const std::vector<std:
 
 #include <iostream>
 
-std::vector<std::size_t> findSubstring(const std::string& x, const std::vector<std::size_t>& sa, const std::string& q) {
+std::vector<std::size_t> findSubstring(const std::string& x, const std::vector<std::size_t>& sa, const std::size_t start, const std::size_t end) {
   std::size_t j = 0;
   auto comp = [&x, &j](const std::size_t i, const char c) {
     if (i + j >= x.size()) return true;
@@ -137,11 +106,11 @@ std::vector<std::size_t> findSubstring(const std::string& x, const std::vector<s
   };
   auto it1 = sa.begin(), it2 = sa.end();
   std::vector<std::size_t> result;
-  while(j < q.size()) {
-    it1 = std::lower_bound(it1, it2, q[j], comp);
+  while(j < end - start) {
+    it1 = std::lower_bound(it1, it2, x[start + j], comp);
     if (it1 == it2) return result;
-    if (x[*it1 + j] > q[j]) return result;
-    it2 = std::lower_bound(it1, it2, q[j] + 1, comp);
+    if (x[*it1 + j] > x[start + j]) return result;
+    it2 = std::lower_bound(it1, it2, x[start + j] + 1, comp);
     j++;
   }
   for(auto it = it1;it != it2;it++) {
@@ -150,10 +119,19 @@ std::vector<std::size_t> findSubstring(const std::string& x, const std::vector<s
   return result;
 }
 
-#include <string>
-#include <cstring>
-#include <iostream>
-#include <set>
+bool isTandem(const std::string& s, const std::size_t start, const std::size_t end) {
+  if ((end - start) % 3 != 0) return false;
+  std::size_t n = (end - start) / 3;
+  const char* p1 = s.c_str() + start;
+  const char* p2;
+  for(std::size_t k = 0;k < 3;k++) {
+    p2 = s.c_str() + start;
+    for(std::size_t i = 0;i < n;i++) {
+      if (*p1++ != *p2++) return false;
+    }
+  }
+  return true;
+}
 
 int main() {
   std::string str;
@@ -163,73 +141,76 @@ int main() {
     return 0;
   }
   auto sa(suffixArray(str));
-/*
+  for(auto i : sa) {
+    std::cout << i << " ";
+  }
+  std::cout << std::endl;
+  return 0;
+  // inverse index of suffix array
+  std::vector<std::size_t> rank(sa.size(), 0);
   for(std::size_t i = 0;i < sa.size();i++) {
-    std::cout << (sa[i]) << " ";
+    rank[sa[i]] = i;
   }
-  std::cout << std::endl;
-*/
+
   auto lcp(getLCP(str, sa));
+  return 0;
 /*
-  for(std::size_t i = 0;i < lcp.size();i++) {
-    std::cout << (lcp[i]) << " ";
+  for(auto i : sa) {
+    std::cout << i << " ";
+  }
+  std::cout << std::endl;
+
+  for(auto i : rank) {
+    std::cout << i << " ";
+  }
+  std::cout << std::endl;
+
+  for(auto i : lcp) {
+    std::cout << i << " ";
   }
   std::cout << std::endl;
 */
-/*
-  std::string query;
-  if (!(std::cin >> query)) return 2;
-  auto result(findSubstring(str, sa, query));
-  for(std::size_t i = 0;i < result.size();i++) {
-    std::cout << result[i] << " ";
-  }
-  std::cout << std::endl;
-*/
-  // find all tandem
-
-  //'save processed substring'
-
-  // substring of str
-  typedef std::pair<const char * , std::size_t > Substring;
-  auto comp = [&str](const Substring& s1, const Substring& s2) {
-    std::size_t n = std::min(s1.second, s2.second);
-    int r = std::strncmp(s1.first, s2.first, n);
-    if (r != 0) return r < 0;
-    else return s1.second < s2.second;
-  };
-  std::set<Substring, decltype(comp)> history(comp);
-  std::size_t i = 0;
-  std::string tmp;
-  std::size_t interesting = 0, boring = 0;
-  while(i + 2 < str.size()) {
-    // the lcp of nearest three leaf node
-    std::size_t lcpN = std::min(lcp[i], lcp[i + 1]);
-    Substring candidate(str.data() + sa[i], 1);
-    while(candidate.second <= lcpN && candidate.second * 3 <= str.size()) {
-      auto hi = history.find(candidate);
-      if (hi == history.end()) {
-        tmp.resize(candidate.second * 3);
-        char* ptmp = &tmp[0];
-        std::copy(candidate.first, candidate.first + candidate.second, tmp.begin());
-        std::copy(candidate.first, candidate.first + candidate.second, tmp.begin() + candidate.second);
-        std::copy(candidate.first, candidate.first + candidate.second, tmp.begin() + 2 * candidate.second);
-        auto rtmp(findSubstring(str, sa, tmp));
-        if (rtmp.size() > 0) {
-          for(std::size_t j = 0;j < rtmp.size();j++) {
-      	    std::size_t target = rtmp[j] + tmp.size();
-      	    if (target == str.size()) interesting += 1;
-      	    else {
-      	      if (str[target] == tmp[0]) boring += 1;
-      	      else interesting += 1;
-      	    }
-          }
-        }
-        history.insert(candidate);
-      }
-      candidate.second++;
+  // t1: next == first
+  // t2: next != first
+  // t3: no next
+  std::size_t t1 = 0, t2 = 0;
+  std::vector<std::size_t> lastT3Head;
+  for(std::size_t i = 3;i <= str.size();i++) {
+    // t3 becomes t1 or t2
+    const char tail = str[i-1];
+    for(auto j : lastT3Head) {
+      if (str[j] == tail) t1++;
+      else t2++;
     }
-    i++;
+    lastT3Head.clear();
+    // check suffixes is tandem or not
+    for(std::size_t j = 0;j < i - 2;j++) {
+      // consider src[j:i]
+      if ((i - j) % 3 != 0) continue;
+      // check if it is a monotone sequence in suffix array
+      std::size_t n = (i - j) / 3;
+      int s1 = (rank[j + n] > rank[j] ? 1 : -1);
+      int s2 = (rank[j + 2 * n] > rank[j + n] ? 1 : -1);
+      if (s1 * s2 < 0) continue;
+      // check minimal lcp
+      std::size_t start = rank[j];
+      std::size_t end = rank[j + 2 * n];
+      if (start > end) {
+        auto tmp = start;
+        start = end;
+        end = tmp;
+      }
+      bool isContinue = false;
+      for(std::size_t k = start;k < end;k++) {
+        if (lcp[k] < n) {
+          isContinue = true;
+          break;
+        }
+      }
+      if (isContinue) continue;
+      lastT3Head.push_back(j);
+    }
   }
-  std::cout << interesting << "  " << boring << std::endl;
+  std::cout << t2 + lastT3Head.size() << "  " << t1 << std::endl;
   return 0;
 }
