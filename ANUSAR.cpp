@@ -145,12 +145,14 @@ int main() {
         std::cout << result << std::endl;
         continue;
       }
+      std::size_t lastLen = 0;
       for(std::size_t i = 0;i < n - f + 1;i++) {
         std::size_t len = n - sa[i];
         for(std::size_t j = 0;j < f - 1;j++) {
           len = std::min(len, lcp[i + j]);
         }
-        result += len * f;
+        result += len * f - std::min(len, lastLen) * (f - 1);
+        lastLen = len;
       }
       std::cout << result << std::endl;
     }
