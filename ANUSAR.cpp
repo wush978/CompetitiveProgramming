@@ -4,6 +4,7 @@
 #include <string>
 #include <algorithm>
 #include <iostream>
+#include <set>
 
 
 /**
@@ -145,7 +146,40 @@ int main() {
         std::cout << result << std::endl;
         continue;
       }
+      if (f >= n + 1) {
+        std::cout << result << std::endl;
+        continue;
+      }
+      if (f == 1) {
+        if (n % 2 == 0) {
+          result = (n / 2) * (n + 1);
+        }
+        else {
+          result = ((n + 1) / 2) * n;
+        }
+        std::cout << result << std::endl;
+        continue;
+      }
+      std::multiset<std::size_t> lcpSet;
       std::size_t lastLen = 0;
+      std::size_t i = 0;
+      for(std::size_t j = 0;j < f - 1;j++) {
+        lcpSet.insert(lcp[i + j]);
+      }
+      std::size_t len = *lcpSet.begin();
+      result += len * f - std::min(len, lastLen) * (f - 1);
+      lastLen = len;
+      i++;
+      while(i < n - f + 1) {
+        auto it = lcpSet.find(lcp[i - 1]);
+        lcpSet.erase(it);
+        lcpSet.insert(lcp[i + f - 2]);
+        len = *lcpSet.begin();
+        result += len * f - std::min(len, lastLen) * (f - 1);
+        lastLen = len;
+        i++;
+      }
+      /*
       for(std::size_t i = 0;i < n - f + 1;i++) {
         std::size_t len = n - sa[i];
         for(std::size_t j = 0;j < f - 1;j++) {
@@ -154,6 +188,7 @@ int main() {
         result += len * f - std::min(len, lastLen) * (f - 1);
         lastLen = len;
       }
+      */
       std::cout << result << std::endl;
     }
   }
