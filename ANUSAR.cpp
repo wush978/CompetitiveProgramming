@@ -138,16 +138,51 @@ int main() {
     for(auto& f : F) {
       if (!(std::cin >> f)) return 1;
     }
+
+    struct RankComp {
+      const std::vector<int>& ref;
+      
+      RankComp(const std::vector<int>& _ref) : 
+      ref(_ref) 
+      { }
+
+      bool operator()(const std::size_t i, const std::size_t j) {
+        if (i < 0 || j < 0) return i < j;
+        if (i >= ref.size() || j >= ref.size()) return i < j;
+        return ref[i] < ref[j];
+      }
+    };
+    std::set<std::size_t, RankComp> rankF(F);
+    for(std::size_t fi = 0;fi < q;fi++) {
+      rankF.insert(fi);
+    }
     const auto sa(suffixArray(input));
     const auto lcp(getLCP(input, sa));
-    for(const auto& f : F) {
+    std::vector<std::size_t> results(q, 0), len(q, 0), lastLen(q, 0);
+
+    for(std::size_t i = 0;i < n;i++) {
+      std::multiset<std::size_t> lcpSet;
+      
+      for(const auto& fi : rankF) {
+        std::size_t l = n - i;
+        const int f = F[fi];
+        std::size_t targetSize = f - 1;
+        while(lcpSet.size() < targetSize) {
+          lcpSet.insert(lcp[i + lcpSet.size()]);
+        }
+        len[fi] = (lcpSet.size() > 0 ? *lcpSet.begin() : l);
+      }
+    }
+
+    for(const auto& fi : rankF) {
+      const int f = F[fi];
       std::size_t result = 0;
       if (f <= 0) {
-        std::cout << result << std::endl;
+        results[fi] = result;
         continue;
       }
       if (f >= n + 1) {
-        std::cout << result << std::endl;
+        results[fi] = result;
         continue;
       }
       if (f == 1) {
@@ -157,7 +192,7 @@ int main() {
         else {
           result = ((n + 1) / 2) * n;
         }
-        std::cout << result << std::endl;
+        results[fi] = result;
         continue;
       }
       std::multiset<std::size_t> lcpSet;
@@ -189,7 +224,10 @@ int main() {
         lastLen = len;
       }
       */
-      std::cout << result << std::endl;
+      results[fi] = result;
+    }
+    for(const auto& r : results) {
+      std::cout << r << std::endl;
     }
   }
   return 0;
