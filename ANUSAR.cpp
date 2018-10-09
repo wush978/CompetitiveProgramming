@@ -128,6 +128,7 @@ std::vector<std::size_t> getLCP(const std::string& input, const std::vector<std:
 int main() {
   int t;
   if (!(std::cin >> t)) return 1;
+  std::vector<std::size_t> results, lastLen;
   for(int ti = 0;ti < t;ti++) {
     std::string input;
     if (!(std::cin >> input)) return 1;
@@ -139,95 +140,29 @@ int main() {
       if (!(std::cin >> f)) return 1;
     }
 
-    struct RankComp {
-      const std::vector<int>& ref;
-      
-      RankComp(const std::vector<int>& _ref) : 
-      ref(_ref) 
-      { }
-
-      bool operator()(const std::size_t i, const std::size_t j) {
-        if (i < 0 || j < 0) return i < j;
-        if (i >= ref.size() || j >= ref.size()) return i < j;
-        return ref[i] < ref[j];
-      }
-    };
-    std::set<std::size_t, RankComp> rankF(F);
-    for(std::size_t fi = 0;fi < q;fi++) {
-      rankF.insert(fi);
-    }
     const auto sa(suffixArray(input));
     const auto lcp(getLCP(input, sa));
-    std::vector<std::size_t> results(q, 0), len(q, 0), lastLen(q, 0);
 
+    results.resize(n, 0);
+    std::fill(results.begin(), results.end(), 0);
+    lastLen.resize(n, 0);
+    std::fill(lastLen.begin(), lastLen.end(), 0);
     for(std::size_t i = 0;i < n;i++) {
-      std::multiset<std::size_t> lcpSet;
-      
-      for(const auto& fi : rankF) {
-        std::size_t l = n - i;
-        const int f = F[fi];
-        std::size_t targetSize = f - 1;
-        while(lcpSet.size() < targetSize) {
-          lcpSet.insert(lcp[i + lcpSet.size()]);
-        }
-        len[fi] = (lcpSet.size() > 0 ? *lcpSet.begin() : l);
+      std::size_t len = n - sa[i];
+      results[0] += len;
+      for(std::size_t j = 0;i + j + 1 < n;j++) {
+        len = std::min(len, lcp[i + j]);
+        if (len == 0) break;
+        results[j + 1] += len * (j + 2) - std::min(len, lastLen[i + j]) * (j + 1);
+        lastLen[i + j] = len;
       }
     }
-
-    for(const auto& fi : rankF) {
-      const int f = F[fi];
-      std::size_t result = 0;
+    for(const auto& f : F) {
       if (f <= 0) {
-        results[fi] = result;
-        continue;
+        std::cout << 0 << std::endl;
+      } else {
+        std::cout << results[f - 1] << std::endl;
       }
-      if (f >= n + 1) {
-        results[fi] = result;
-        continue;
-      }
-      if (f == 1) {
-        if (n % 2 == 0) {
-          result = (n / 2) * (n + 1);
-        }
-        else {
-          result = ((n + 1) / 2) * n;
-        }
-        results[fi] = result;
-        continue;
-      }
-      std::multiset<std::size_t> lcpSet;
-      std::size_t lastLen = 0;
-      std::size_t i = 0;
-      for(std::size_t j = 0;j < f - 1;j++) {
-        lcpSet.insert(lcp[i + j]);
-      }
-      std::size_t len = *lcpSet.begin();
-      result += len * f - std::min(len, lastLen) * (f - 1);
-      lastLen = len;
-      i++;
-      while(i < n - f + 1) {
-        auto it = lcpSet.find(lcp[i - 1]);
-        lcpSet.erase(it);
-        lcpSet.insert(lcp[i + f - 2]);
-        len = *lcpSet.begin();
-        result += len * f - std::min(len, lastLen) * (f - 1);
-        lastLen = len;
-        i++;
-      }
-      /*
-      for(std::size_t i = 0;i < n - f + 1;i++) {
-        std::size_t len = n - sa[i];
-        for(std::size_t j = 0;j < f - 1;j++) {
-          len = std::min(len, lcp[i + j]);
-        }
-        result += len * f - std::min(len, lastLen) * (f - 1);
-        lastLen = len;
-      }
-      */
-      results[fi] = result;
-    }
-    for(const auto& r : results) {
-      std::cout << r << std::endl;
     }
   }
   return 0;
