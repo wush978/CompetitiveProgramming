@@ -4,4 +4,4 @@ TARGET=$(basename $(CPP))
 all : $(TARGET)
 
 % : %.cpp
-	g++ -g -std=c++14 $< -o $@
+	g++ -g -O2 -std=c++14 $< -o $@

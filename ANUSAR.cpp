@@ -123,6 +123,20 @@ std::vector<std::size_t> getLCP(const std::string& input, const std::vector<std:
   return result;
 }
 
+struct Order {
+  const std::vector<std::size_t>& ref;
+  Order(const std::vector<std::size_t>& _ref) :
+  ref(_ref)
+  { }
+
+  bool operator()(const std::size_t i, const std::size_t j) {
+    if (i >= ref.size() || j >= ref.size()) {
+      return i < j;
+    }
+    return ref[i] < ref[j];
+  }
+};
+
 #include <iostream>
 
 int main() {
@@ -142,7 +156,8 @@ int main() {
 
     const auto sa(suffixArray(input));
     const auto lcp(getLCP(input, sa));
-
+    std::set<std::size_t, Order> lcpOrder((Order(lcp)));
+    return 1;
     results.resize(n, 0);
     std::fill(results.begin(), results.end(), 0);
     lastLen.resize(n, 0);
