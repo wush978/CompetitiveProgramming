@@ -5,6 +5,7 @@
 #include <stack>
 #include <limits>
 #include <tuple>
+#include <memory>
 
 typedef unsigned long long Int;
 
@@ -81,12 +82,93 @@ struct SegmentTree {
   }
 };
 
+struct getResultFrame {
+  
+  static std::stack<getResultFrame*> getResultStack;
+
+  static const SegmentTree* pTree;
+
+  enum State {
+    begin = 0,
+    end
+  } state;
+
+  std::size_t l;
+
+  std::size_t r;
+
+  SegmentTree::Value node;
+
+  Int result;
+
+  std::shared_ptr<getResultFrame> leftChild, rightChild;
+
+  getResultFrame(std::size_t _l, std::size_t _r, State _state) :
+  state(_state), l(_l), r(_r), node(), result(0), leftChild(nullptr), rightChild(nullptr)
+  { }
+
+private:
+  getResultFrame(const getResultFrame&);
+  void operator=(const getResultFrame&);
+};
+
+std::stack<getResultFrame*> getResultFrame::getResultStack;
+
+const SegmentTree* getResultFrame::pTree(nullptr);
+
 Int getResult(std::size_t l, std::size_t r, const SegmentTree& tree) {
+  {
+    std::stack<getResultFrame*> emptyStack;
+    getResultFrame::getResultStack.swap(emptyStack);
+  }
+  getResultFrame::pTree = &tree;
+  auto& localStack(getResultFrame::getResultStack);
+  typedef getResultFrame::State State;
+  getResultFrame root(l, r, State::begin);
+  localStack.push(&root);
+  while(!localStack.empty()) {
+    auto pFrame(localStack.top());
+    auto& frame(*pFrame);
+    std::cout << "[" << frame.l << "," << frame.r << ") " << frame.state << std::endl;
+    localStack.pop();
+    switch(frame.state) {
+      case State::begin : {
+        frame.node = tree.find(frame.l, frame.r);
+        frame.result = frame.node.first * (frame.r - frame.l);
+        frame.state = State::end;
+        localStack.push(&frame);
+        if (frame.node.second > frame.l) {
+          frame.leftChild.reset(new getResultFrame(frame.l, frame.node.second, State::begin));
+          localStack.push(frame.leftChild.get());
+        }
+        if (frame.result > frame.node.second + 1) {
+          frame.rightChild.reset(new getResultFrame(frame.node.second + 1, frame.r, State::begin));
+          localStack.push(frame.rightChild.get());
+        }
+        break;
+      }
+      case State::end : {
+        if (frame.leftChild.get()) {
+          frame.result = std::max(frame.result, frame.leftChild->result);
+          frame.leftChild.reset();
+        }
+        if (frame.rightChild.get()) {
+          frame.result = std::max(frame.result, frame.rightChild->result);
+          frame.rightChild.reset();
+        }
+        std::cout << "result: " << frame.result << std::endl;
+      }
+    }
+  }
+  return root.result;
+
+  /*
   auto node(tree.find(l, r));
   Int result = node.first * (r - l);
   result = std::max(result, (node.second > l ? getResult(l, node.second, tree) : 0));
   result = std::max(result, (r > node.second + 1 ? getResult(node.second + 1, r, tree) : 0));
   return result;
+  */
 }
 
 int main() {
