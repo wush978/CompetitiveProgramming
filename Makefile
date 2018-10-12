@@ -9,3 +9,6 @@ all : $(TARGET) $(DEBUG)
 
 %.debug : %.cpp
 	g++ -g -std=c++14 $< -o $@
+
+debug :
+	lldb ./$(shell ls -1rt $(DEBUG) | tail -n 1)
