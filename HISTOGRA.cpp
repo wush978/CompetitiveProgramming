@@ -129,7 +129,7 @@ Int getResult(std::size_t l, std::size_t r, const SegmentTree& tree) {
   while(!localStack.empty()) {
     auto pFrame(localStack.top());
     auto& frame(*pFrame);
-    std::cout << "[" << frame.l << "," << frame.r << ") " << frame.state << std::endl;
+    // std::cout << "[" << frame.l << "," << frame.r << ") " << frame.state << std::endl;
     localStack.pop();
     switch(frame.state) {
       case State::begin : {
@@ -156,7 +156,7 @@ Int getResult(std::size_t l, std::size_t r, const SegmentTree& tree) {
           frame.result = std::max(frame.result, frame.rightChild->result);
           frame.rightChild.reset();
         }
-        std::cout << "result: " << frame.result << std::endl;
+        // std::cout << "result: " << frame.result << std::endl;
       }
     }
   }
