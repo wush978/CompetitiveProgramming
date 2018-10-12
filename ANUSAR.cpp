@@ -13,6 +13,7 @@ void countingSort(const Vector& input, std::size_t K, CountingSultResult& result
 }) {
   std::size_t n = input.size();
   if (n == 0) return;
+  if (K == 0) throw std::invalid_argument("K == 0");
   typedef typename Vector::value_type Value;
   result.first.resize(n);
   result.second.resize(n);
@@ -20,8 +21,11 @@ void countingSort(const Vector& input, std::size_t K, CountingSultResult& result
   for(std::size_t i = 0;i < n;i++) {
     count[converter(input[i])] += 1;
   }
-  for(std::size_t i = 1;i < K;i++) {
-    count[i] += count[i-1];
+  std::size_t tmp = 0, csum = 0;
+  for(std::size_t i = 0;i < K;i++) {
+    tmp = count[i];
+    count[i] = csum;
+    csum += tmp;
   }
   for(std::size_t i = 0;i < n;i++) {
     std::size_t j = converter(input[i]);
@@ -43,10 +47,11 @@ void countingSort(const Vector& input, std::size_t K, CountingSultResult& result
 }
 
 const std::deque<std::size_t> getCyclicSort(const std::string& S) {
+  std::size_t n = S.size();
   CountingSultResult pc, pcTmp;
   std::size_t cyclicSize = 1;
-  countingSort(S, 26, pc, [](const char v) {
-    return v - 'a';
+  countingSort(S, 27, pc, [](const char v) {
+    return v - ('a' - 1);
   });
   cyclicSize *= 2;
   std::vector<std::size_t> index(n, 0);
@@ -62,7 +67,7 @@ const std::deque<std::size_t> getCyclicSort(const std::string& S) {
 }
 
 const std::deque<std::size_t> getSuffixArray(std::string& S) {
-  S.push_back(0x0);
+  S.push_back('a' - 1);
   auto result(getCyclicSort(S));
   S.pop_back();
   result.pop_front();
@@ -78,6 +83,7 @@ int main() {
   std::vector<std::size_t> F;
   while(T > 0) {
     if (!(std::cin >> S)) return 1;
+    for(const auto s : S) if (s < 'a' || s > 'z') return 1;
     if (!(std::cin >> Q)) return 1;
     F.resize(Q);
     for(auto& f : F) {
