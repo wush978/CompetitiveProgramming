@@ -141,7 +141,7 @@ Int getResult(std::size_t l, std::size_t r, const SegmentTree& tree) {
           frame.leftChild.reset(new getResultFrame(frame.l, frame.node.second, State::begin));
           localStack.push(frame.leftChild.get());
         }
-        if (frame.result > frame.node.second + 1) {
+        if (frame.r > frame.node.second + 1) {
           frame.rightChild.reset(new getResultFrame(frame.node.second + 1, frame.r, State::begin));
           localStack.push(frame.rightChild.get());
         }
