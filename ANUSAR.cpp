@@ -194,6 +194,7 @@ int main() {
       std::size_t j = (result.size() - i - 1);
       result[j] += result[j+1];
     }
+    if (result.size() == 0) result.resize(1, 0);
     result[0] = (n % 2 == 0 ? (n / 2) * (n + 1) : ((n + 1) / 2) * n);
     for(auto& f : F) {
       if (f - 1 < result.size()) {
