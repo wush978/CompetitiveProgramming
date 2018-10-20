@@ -5,3 +5,5 @@
 *.output
 *.debug
 *~
+*dSYM
+.DS_Store

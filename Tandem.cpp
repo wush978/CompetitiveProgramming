@@ -1,236 +1,149 @@
 #include <vector>
-#include <cmath>
-#include <climits>
+#include <deque>
+#include <functional>
 #include <string>
-#include <algorithm>
 #include <iostream>
 
+struct CountingSortResult {
 
-/**
- * @param T The typename of the sorted objects
- * @param k The number of classes of the sorted objects
- * Reference: https://cp-algorithms.com/string/suffix-array.html
- */
-std::vector<std::size_t> sortCyclicShifts(const std::string& x) {
-  std::size_t n = x.size();
-  std::vector<std::size_t> p(n, 0), c(n, 0);
-  const std::size_t K = 256;
-  // counting sort
+  std::deque<std::size_t> p;
+
+  std::vector<std::size_t> c;
+
+};
+
+template<typename T, typename V = typename T::value_type>
+void countingSort(const T& input, const std::size_t K, CountingSortResult& result, std::function<std::size_t(const V&)> converter = [](const V& v) {
+  return (std::size_t) v;
+}, bool isClass = true) {
   std::vector<std::size_t> count(K, 0);
-  for(std::size_t i = 0;i < x.size();i++) {
-    count[static_cast<unsigned char>(x[i])] += 1;
+  for(const V& v : input) {
+    count[converter(v)] += 1;
   }
-  std::size_t csum = 0, tmp;
-  for(std::size_t i = 0;i < count.size();i++) {
+  std::size_t tmp, csum = 0;
+  for(std::size_t i = 0;i < K;i++) {
     tmp = count[i];
     count[i] = csum;
     csum += tmp;
   }
-  for(std::size_t i = 0;i < n;i++) {
-    unsigned char j = static_cast<unsigned char>(x[i]);
-    p[count[j]] = i;
+  result.p.resize(input.size(), 0);
+  result.c.resize(input.size(), 0);
+  for(std::size_t i = 0;i < input.size();i++) {
+    std::size_t j = converter(input[i]);
+    result.p[count[j]] = i;
     count[j] += 1;
   }
-  std::size_t cValue = 0;
-  c[p[0]] = cValue;
-  for(std::size_t i = 1;i < n;i++) {
-    if (x[p[i]] != x[p[i-1]]) cValue++;
-    c[p[i]] = cValue;
+  if (!isClass) return;
+  result.c.resize(input.size(), 0);
+  result.c[result.p[0]] = 0;
+  for(std::size_t i = 1;i < input.size();i++) {
+    std::size_t j1 = result.p[i-1], j2 = result.p[i];
+    std::size_t v1 = converter(input[j1]), v2 = converter(input[j2]);
+    if (v1 < v2) {
+      result.c[j2] = result.c[j1] + 1;
+    } 
+    else if (v1 == v2) {
+      result.c[j2] = result.c[j1];
+    }
+    else {
+      throw std::logic_error("v1 > v2");
+    }
   }
-  // recursion
-  std::size_t step = 1, stepBound = std::ceil(std::log2((double) n)), shift = 1;
-  std::vector<std::size_t> ctmp(n, 0), ptmp(n, 0);
-  while(step <= stepBound) {
-    count.resize(cValue + 1);
-    std::fill(count.begin(), count.end(), 0);
-    for(std::size_t i = 0;i < shift;i++) {
-      count[c[i + (n - shift)]] += 1;
-    }
-    for(std::size_t i = shift;i < n;i++) {
-      count[c[i - shift]] += 1;
-    }
-    csum = 0;
-    for(std::size_t i = 0;i < count.size();i++) {
-      tmp = count[i];
-      count[i] = csum;
-      csum += tmp;
-    }
-    std::fill(ptmp.begin(), ptmp.end(), 0);
-    std::fill(ctmp.begin(), ctmp.end(), 0);
-    for(std::size_t& i : p) {
-      std::size_t shifted = (i < shift ? i + n - shift : i - shift);
-      std::size_t shiftedC = c[shifted];
-      ptmp[count[shiftedC]] = shifted;
-      count[shiftedC] += 1;
-    }
-    cValue = 0;
-    ctmp[ptmp[0]] = cValue;
-    for(std::size_t i = 1;i < n;i++) {
-      std::size_t j = ptmp[i];
-      std::size_t jShifted = j + shift;
-      if (jShifted >= n) jShifted -= n;
-      std::size_t c1 = c[j], c2 = c[jShifted];
-      // c[jShifted] , c[j]
-      j = ptmp[i - 1];
-      jShifted = j + shift;
-      if (jShifted >= n) jShifted -= n;
-      std::size_t d1 = c[j], d2 = c[jShifted];
-      if (c1 > d1 || (c1 == d1 && c2 > d2)) {
-        cValue++;
-      }
-      if (c1 < d1) throw std::logic_error("c1 < d1");
-      if (c1 == d1 && c2 < d2) throw std::logic_error("c2 < d2");
-      ctmp[ptmp[i]] = cValue;
-    }
-    shift = (shift * 2) % n;
-    std::swap(c, ctmp);
-    std::swap(p, ptmp);
-    step++;
-  }
-  return p;
+  return;
 }
 
-std::vector<std::size_t> suffixArray(std::string& input) {
-  input.push_back(0x0);
-  auto result(sortCyclicShifts(input));
-  result.erase(result.begin());
-  input.pop_back();
+std::deque<std::size_t> cyclicSort(const std::string& S) {
+  std::size_t n = S.size();
+  CountingSortResult pc, pcTmp;
+  std::deque<std::size_t> buf(n, 0);
+  countingSort<std::string, char>(S, 27, pc, [](const char c) {
+    return (std::size_t) (c - 'a' + 1);
+  });
+  std::size_t cyclicSize = 1;
+  bool shiftForward = false;
+  auto cyclicShift = [&n, &cyclicSize, &shiftForward](const std::size_t i) {
+    if (shiftForward) {
+      return (i + cyclicSize < n ? i + cyclicSize : i + cyclicSize - n);
+    } else {
+      return (i < cyclicSize ? i + n - cyclicSize : i - cyclicSize);
+    }
+  };
+  std::vector<std::size_t> index(S.size(), 0);
+  for(std::size_t i = 0;i < index.size();i++) {
+    index[i] = i;
+  }
+  while(cyclicSize < S.size()) {
+    countingSort< std::vector<std::size_t> , std::size_t >(index, pc.c[*pc.p.rbegin()] + 1, pcTmp, [&cyclicShift, &pc](const std::size_t i) {
+      std::size_t j = pc.p[i];
+      return pc.c[cyclicShift(j)];
+    }, false);
+    for(std::size_t i = 0;i < n;i++) {
+      buf[i] = cyclicShift(pc.p[pcTmp.p[i]]);
+    }
+    pcTmp.c[buf[0]] = 0;
+    shiftForward = true;
+    for(std::size_t i = 1;i < n;i++) {
+      std::size_t 
+        v1_1 = pc.c[buf[i-1]], 
+        v1_2 = pc.c[cyclicShift(buf[i-1])],
+        v2_1 = pc.c[buf[i]],
+        v2_2 = pc.c[cyclicShift(buf[i])];
+      if (v1_1 < v2_1) {
+        pcTmp.c[buf[i]] = pcTmp.c[buf[i-1]] + 1;
+      } else if (v1_1 == v2_1) {
+        if (v1_2 < v2_2) {
+          pcTmp.c[buf[i]] = pcTmp.c[buf[i-1]] + 1;
+        } else if (v1_2 == v2_2) {
+          pcTmp.c[buf[i]] = pcTmp.c[buf[i-1]];
+        } else {
+          throw std::logic_error("v1_2 > v2_2");
+        }
+      } else {
+        throw std::logic_error("v1_1 > v2_1");
+      }
+    }
+    cyclicSize *= 2;
+    shiftForward = false;
+  }
+  return pc.p;
+}
+
+std::deque<std::size_t> getSuffixArray(std::string& S) {
+  S.push_back('a' - 1);
+  std::deque<std::size_t> result = cyclicSort(S);
+  result.pop_front();
   return result;
 }
 
-std::vector<std::size_t> getLCP(const std::string& input, const std::vector<std::size_t>& sa) {
-  std::size_t n = input.size();
+std::vector<std::size_t> getLCP(const std::string& S, const std::deque<std::size_t>& sa) {
+  std::size_t n = S.size();
+  if (n == 0) throw std::invalid_argument("empty string");
+  std::vector<std::size_t> result(n - 1, 0);
+  std::size_t current_value = 0;
   std::vector<std::size_t> rank(n, 0);
-  for(std::size_t i = 0;i < sa.size();i++) {
+  for(std::size_t i = 0;i < n;i++) {
     rank[sa[i]] = i;
   }
-
-  std::size_t k = 0;
-  std::vector<std::size_t> result(n - 1, 0);
   for(std::size_t i = 0;i < n;i++) {
-    if (rank[i] == n - 1) {
-      k = 0;
-      continue;
+    std::size_t j = rank[i];
+    if (j + 1 == n) {
+      current_value = 0;
+    } else {
+      std::size_t i_next = sa[j + 1];
+      while(i + current_value + 1 < n && i_next + current_value + 1 < n && S[i + current_value + 1] == S[i_next + current_value + 1]) {
+        current_value += 1;
+      }
+      result[j] = current_value;
+      current_value -= 1;
     }
-    std::size_t j = sa[rank[i] + 1];
-    while(i + k < n && j + k < n && input[i + k] == input[j + k]) {
-      k++;
-    }
-    result[rank[i]] = k;
-    if (k > 0) k--;
   }
   return result;
-}
-
-#include <iostream>
-
-std::vector<std::size_t> findSubstring(const std::string& x, const std::vector<std::size_t>& sa, const std::size_t start, const std::size_t end) {
-  std::size_t j = 0;
-  auto comp = [&x, &j](const std::size_t i, const char c) {
-    if (i + j >= x.size()) return true;
-    return x[i + j] < c;
-  };
-  auto it1 = sa.begin(), it2 = sa.end();
-  std::vector<std::size_t> result;
-  while(j < end - start) {
-    it1 = std::lower_bound(it1, it2, x[start + j], comp);
-    if (it1 == it2) return result;
-    if (x[*it1 + j] > x[start + j]) return result;
-    it2 = std::lower_bound(it1, it2, x[start + j] + 1, comp);
-    j++;
-  }
-  for(auto it = it1;it != it2;it++) {
-    result.push_back(*it);
-  }
-  return result;
-}
-
-bool isTandem(const std::string& s, const std::size_t start, const std::size_t end) {
-  if ((end - start) % 3 != 0) return false;
-  std::size_t n = (end - start) / 3;
-  const char* p1 = s.c_str() + start;
-  const char* p2;
-  for(std::size_t k = 0;k < 3;k++) {
-    p2 = s.c_str() + start;
-    for(std::size_t i = 0;i < n;i++) {
-      if (*p1++ != *p2++) return false;
-    }
-  }
-  return true;
 }
 
 int main() {
-  std::string str;
-  if (!std::getline(std::cin, str)) return 1;
-  if (str.size() < 3) {
-    std::cout << 0 << "  " << 0 << std::endl;
-    return 0;
-  }
-  auto sa(suffixArray(str));
-  // inverse index of suffix array
-  std::vector<std::size_t> rank(sa.size(), 0);
-  for(std::size_t i = 0;i < sa.size();i++) {
-    rank[sa[i]] = i;
-  }
-
-  auto lcp(getLCP(str, sa));
-/*
-  for(auto i : sa) {
-    std::cout << i << " ";
-  }
-  std::cout << std::endl;
-
-  for(auto i : rank) {
-    std::cout << i << " ";
-  }
-  std::cout << std::endl;
-
-  for(auto i : lcp) {
-    std::cout << i << " ";
-  }
-  std::cout << std::endl;
-*/
-  // t1: next == first
-  // t2: next != first
-  // t3: no next
-  std::size_t t1 = 0, t2 = 0;
-  std::vector<std::size_t> lastT3Head;
-  for(std::size_t i = 3;i <= str.size();i++) {
-    // t3 becomes t1 or t2
-    const char tail = str[i-1];
-    for(auto j : lastT3Head) {
-      if (str[j] == tail) t1++;
-      else t2++;
-    }
-    lastT3Head.clear();
-    // check suffixes is tandem or not
-    for(std::size_t j = 0;j < i - 2;j++) {
-      // consider src[j:i]
-      if ((i - j) % 3 != 0) continue;
-      // check if it is a monotone sequence in suffix array
-      std::size_t n = (i - j) / 3;
-      int s1 = (rank[j + n] > rank[j] ? 1 : -1);
-      int s2 = (rank[j + 2 * n] > rank[j + n] ? 1 : -1);
-      if (s1 * s2 < 0) continue;
-      // check minimal lcp
-      std::size_t start = rank[j];
-      std::size_t end = rank[j + 2 * n];
-      if (start > end) {
-        auto tmp = start;
-        start = end;
-        end = tmp;
-      }
-      bool isContinue = false;
-      for(std::size_t k = start;k < end;k++) {
-        if (lcp[k] < n) {
-          isContinue = true;
-          break;
-        }
-      }
-      if (isContinue) continue;
-      lastT3Head.push_back(j);
-    }
-  }
-  std::cout << t2 + lastT3Head.size() << "  " << t1 << std::endl;
+  std::string S;
+  if (!(std::cin >> S)) return 1;
+  const auto sa(getSuffixArray(S));
+  const auto lcp(getLCP(S, sa));
   return 0;
 }
