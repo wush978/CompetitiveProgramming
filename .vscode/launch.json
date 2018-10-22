@@ -17,6 +17,9 @@
       "setupCommands": [
         {
           "text" : "settings set target.input-path ${workspaceRoot}/Tandem.input"
+        },
+        {
+          "text" : "command script import deque.py"
         }
       ]
     }
