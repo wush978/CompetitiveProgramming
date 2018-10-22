@@ -112,6 +112,7 @@ std::deque<std::size_t> getSuffixArray(std::string& S) {
   S.push_back('a' - 1);
   std::deque<std::size_t> result = cyclicSort(S);
   result.pop_front();
+  S.pop_back();
   return result;
 }
 
