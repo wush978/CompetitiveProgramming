@@ -262,12 +262,11 @@ struct SegmentTree {
 int main() {
   std::string S;
   if (!(std::cin >> S)) return 1;
+  const std::size_t N = S.size();
   const auto sa(getSuffixArray(S));
   const auto s_rank(getRank(sa));
   const auto s_lcp(getLCP(S, sa, s_rank));
-  const auto s_lcp_tree(SegmentTree(s_lcp, [](std::size_t l, std::size_t r) {
-    return std::min(l, r);
-  }, std::numeric_limits<std::size_t>::max()));
+  const auto s_lcp_tree = SegmentTree(s_lcp);
   #ifdef TANDEM_DEBUG
   for(std::size_t i = 0;i < s_lcp.size();i++) {
     for(std::size_t j = i + 1;j < s_lcp.size();j++) {
@@ -283,10 +282,8 @@ int main() {
   const auto pa(getSuffixArray(S));
   const auto p_rank(getRank(pa));
   const auto p_lcp(getLCP(S, pa, p_rank));
-  const auto p_lcp_tree(SegmentTree(p_lcp, [](std::size_t l, std::size_t r) {
-    return std::min(l, r);
-  }, std::numeric_limits<std::size_t>::max()));
-  auto getMin = [](const std::size_t x1, const std::size_t x2, const std::size_t x3, const SegmentTree& tree, const std::size_t L) {
+  const auto p_lcp_tree = SegmentTree(p_lcp);
+  auto getLCP123 = [](const std::size_t x1, const std::size_t x2, const std::size_t x3, const SegmentTree& tree, const std::size_t L) {
     std::size_t l, r;
     if (x1 < x2) {
       l = x1;
@@ -298,41 +295,37 @@ int main() {
     if (x3 < l) l = x3;
     else if (x3 > r) r = x3;
     return tree.find(l, r, 0, L);
-  }
-  for(std::size_t L = 1;3 * L <= S.size();L++) {
-    std::size_t start = 0, l, r;
+  };
+  std::size_t boring_count = 0, interesting_count = 0;
+  for(std::size_t L = 1;3 * L <= N;L++) {
+    std::size_t start = 0;
     std::size_t s1 = s_rank[start], s2 = s_rank[start + L], s3 = s_rank[start + 2 * L];
-    std::size_t p1 = p_rank[start], p2 = p_rank[start + L], p3 = p_rank[start + 2 * L];
-    while(start + 3 * L <= S.size()) {
+    std::size_t p1 = p_rank[N - 1 - start], p2 = p_rank[N - 1 - start - L], p3 = p_rank[N - 1 - start - 2 * L];
+    while(start + 2 * L < N) {
       if (start > 0) {
         s1 = s2;
         s2 = s3;
         s3 = s_rank[start + 2 * L];
         p1 = p2;
         p2 = p3;
-        p3 = p_rank[start + 2 * L];
+        p3 = p_rank[N - 1 - start - 2 * L];
       }
-      if (s1 < s2) {
-        l = s1;
-        r = s2;
-      } else {
-        l = s2;
-        r = s1;
+      std::size_t s_lcp123 = getLCP123(s1, s2, s3, s_lcp_tree, L + 1);
+      std::size_t p_lcp123 = getLCP123(p1, p2, p3, p_lcp_tree, L);
+      std::size_t lower_bound = std::max(L, p_lcp123) + start + 2;
+      std::size_t upper_bound_all = std::min(s_lcp123 + 1, L + 1) + start + p_lcp123;
+      std::size_t upper_bound_boring = std::min(s_lcp123, L + 1) + start + p_lcp123;
+      if (upper_bound_all >= lower_bound) {
+        if (upper_bound_boring >= lower_bound) {
+          boring_count += upper_bound_boring - lower_bound + 1;
+          interesting_count += upper_bound_all - upper_bound_boring;
+        } else {
+          interesting_count += upper_bound_all - lower_bound + 1;
+        }
       }
-      if (s3 < l) l = s3;
-      else if (s3 > r) r = s3;
-      s_lcp_tree.find(l, r, 0);
-      if (p1 < p2) {
-        l = p1;
-        r = p2;
-      } else {
-        l = p2;
-        r = p1;
-      }
-      if ()
-      p_lcp_tree.find(l, r, 0);
       start += L;
     }
   }
+  std::cout << interesting_count << " " << boring_count << std::endl;
   return 0;
 }
