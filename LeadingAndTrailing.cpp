@@ -50,7 +50,7 @@ int main() {
     }
 
     std::cout << std::setfill('0') << std::setw(3) << leading_result << 
-      "..." << trailing_result << std::endl;
+      "..." << std::setfill('0') << std::setw(3) << trailing_result << std::endl;
   }
   return 0;
 }
