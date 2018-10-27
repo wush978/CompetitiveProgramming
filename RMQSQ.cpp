@@ -1,3 +1,7 @@
+/**
+ * https://www.spoj.com/problems/RMQSQ/
+ */
+
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -16,14 +20,13 @@ int main() {
   std::vector<std::size_t> shifts(K, 1);
   for(std::size_t k = 1;k < K;k++) {
     shifts[k] = 2 * shifts[k - 1];
-    for(std::size_t i = 0;i + shifts[k] < N;i++) {
-      A[i][k] = std::min(A[i][k-1], A[i + shifts[k]][k-1]);
+    for(std::size_t i = 0;i + shifts[k] <= N;i++) {
+      A[i][k] = std::min(A[i][k-1], A[i + shifts[k-1]][k-1]);
     }
   }
-  
 
   if (!(std::cin >> Q)) return 1;
-  std::size_t i, j;
+  std::size_t i, j, index = 1;
   while(Q > 0) {
     Q--;
     if (!(std::cin >> i >> j)) return 0;
@@ -38,7 +41,5 @@ int main() {
     } while(len > 0);
     std::cout << result << std::endl;
   }
-  
-
-  
+  return 0;
 }
