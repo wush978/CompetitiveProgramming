@@ -19,7 +19,34 @@
           "text" : "settings set target.input-path ${workspaceRoot}/LeadingAndTrailing.input"
         }
       ]
-    }
+    },
+    {
+      "name": "WSL Linux LLDB",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceRoot}/LeadingAndTrailing.debug",
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": true,
+      "windows": {
+          "MIMode": "lldb",
+          "setupCommands": [
+              {
+                "text" : "settings set target.input-path ${workspaceRoot}/LeadingAndTrailing.input"
+              }
+          ]
+      },
+      "pipeTransport": {
+          "pipeCwd": "",
+          "pipeProgram": "c:\\windows\\sysnative\\bash.exe",
+          "pipeArgs": ["-c"],
+          "debuggerPath": "/usr/bin/lldb"
+      },
+      "sourceFileMap": {
+          "/mnt/d": "d:\\"
+      }
+  }
   ],
   "compounds": []
 }
